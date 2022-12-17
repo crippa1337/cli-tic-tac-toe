@@ -1,4 +1,4 @@
-use ansi_term::Color::{self, Green, Red, Yellow, RGB};
+use ansi_term::Color::{self, Green, Red, White, Yellow, RGB};
 use std::io::{stdin, Write};
 
 fn main() {
@@ -37,12 +37,27 @@ fn main() {
         stdin().read_line(&mut String::new()).unwrap();
         clear_screen();
         draw_board(&board);
+
+        // Declare "global" variables
         let mut ai_picked = false;
+        let mut time_end = std::time::Duration::new(0, 0);
+        let ai = [0, 0];
+        let mut iterations = 0;
 
         loop {
-            // Get player input
-            let input = take_input(&board);
-            board[input[1]][input[0]] = player_tile;
+            // Depending on who is X, X will go first
+            if player_tile == Tile::X {
+                let input = take_input(&board);
+                board[input[1]][input[0]] = player_tile;
+            } else if computer_tile == Tile::X {
+                let time_start = std::time::Instant::now();
+                iterations = 0;
+                let ai = computer_move(&mut board, player_tile, computer_tile, &mut iterations);
+                time_end = time_start.elapsed();
+                board[ai[1]][ai[0]] = computer_tile;
+                ai_picked = true;
+                ai_print(board, ai, iterations, time_end);
+            }
 
             // Check if game is over
             let state = check_board(&board, player_tile, computer_tile);
@@ -70,12 +85,17 @@ fn main() {
                 BoardState::Continue => (),
             }
 
-            // Computer turn
-            let time_start = std::time::Instant::now();
-            let ai = computer_move(&mut board, player_tile, computer_tile);
-            let time_end = time_start.elapsed();
-            board[ai[1]][ai[0]] = computer_tile;
-            ai_picked = true;
+            if player_tile == Tile::O {
+                let input = take_input(&board);
+                board[input[1]][input[0]] = player_tile;
+            } else if computer_tile == Tile::O {
+                let time_start = std::time::Instant::now();
+                iterations = 0;
+                let ai = computer_move(&mut board, player_tile, computer_tile, &mut iterations);
+                time_end = time_start.elapsed();
+                board[ai[1]][ai[0]] = computer_tile;
+                ai_picked = true;
+            }
 
             let state = check_board(&board, player_tile, computer_tile);
             match state {
@@ -107,17 +127,27 @@ fn main() {
             } else {
                 clear_screen();
                 draw_board(&board);
-                println!(
-                    "{} {} {} {} {:?}",
-                    Red.bold().paint(">>>"),
-                    Red.paint("Computer picked: "),
-                    index_to_string(ai),
-                    Red.paint(" in "),
-                    time_end
-                );
+                ai_print(board, ai, iterations, time_end);
             }
         }
     }
+}
+
+fn ai_print(board: [[Tile; 3]; 3], ai: [usize; 2], iterations: i32, time_end: std::time::Duration) {
+    clear_screen();
+    draw_board(&board);
+    println!(
+        "{} {} {} {} {:?} {} {} {}",
+        Red.bold().paint(">>>"),
+        Red.paint("Computer picked:"),
+        index_to_string(ai),
+        Red.paint("in"),
+        time_end,
+        Red.paint("after checking"),
+        // Divied by 2 because it checks both player and computer
+        White.bold().paint((iterations / 2).to_string()),
+        Red.paint("permutations.")
+    );
 }
 
 fn arrow_print(text: &str, color: Color) {
@@ -383,7 +413,9 @@ fn minimax(
     player_tile: Tile,
     computer_tile: Tile,
     maximizing: bool,
+    iterations: &mut i32,
 ) -> i32 {
+    *iterations += 1;
     // AI is minimizer
 
     let state = check_board(board, player_tile, computer_tile);
@@ -403,7 +435,7 @@ fn minimax(
         for tile in empty_tiles(board) {
             let mut new_board = board.clone();
             new_board[tile[1]][tile[0]] = computer_tile;
-            let score = minimax(&new_board, player_tile, computer_tile, false);
+            let score = minimax(&new_board, player_tile, computer_tile, false, iterations);
             if score > best_score {
                 best_score = score;
             }
@@ -414,7 +446,7 @@ fn minimax(
         for tile in empty_tiles(board) {
             let mut new_board = board.clone();
             new_board[tile[1]][tile[0]] = player_tile;
-            let score = minimax(&new_board, player_tile, computer_tile, true);
+            let score = minimax(&new_board, player_tile, computer_tile, true, iterations);
             if score < best_score {
                 best_score = score;
             }
@@ -423,13 +455,24 @@ fn minimax(
     }
 }
 
-fn computer_move(board: &mut [[Tile; 3]; 3], player_tile: Tile, computer_tile: Tile) -> [usize; 2] {
+fn computer_move(
+    board: &mut [[Tile; 3]; 3],
+    player_tile: Tile,
+    computer_tile: Tile,
+    mut iterations: &mut i32,
+) -> [usize; 2] {
     let mut best_score = -2;
     let mut best_move = [0; 2];
     for tile in empty_tiles(board) {
         let mut new_board = board.clone();
         new_board[tile[1]][tile[0]] = computer_tile;
-        let score = minimax(&new_board, player_tile, computer_tile, false);
+        let score = minimax(
+            &new_board,
+            player_tile,
+            computer_tile,
+            false,
+            &mut iterations,
+        );
         if score > best_score {
             best_score = score;
             best_move = tile;
