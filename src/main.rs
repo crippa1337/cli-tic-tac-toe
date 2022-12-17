@@ -71,7 +71,9 @@ fn main() {
             }
 
             // Computer turn
+            let time_start = std::time::Instant::now();
             let ai = computer_move(&mut board, player_tile, computer_tile);
+            let time_end = time_start.elapsed();
             board[ai[1]][ai[0]] = computer_tile;
             ai_picked = true;
 
@@ -106,10 +108,12 @@ fn main() {
                 clear_screen();
                 draw_board(&board);
                 println!(
-                    "{} {} {}",
+                    "{} {} {} {} {:?}",
                     Red.bold().paint(">>>"),
                     Red.paint("Computer picked: "),
-                    index_to_string(ai)
+                    index_to_string(ai),
+                    Red.paint(" in "),
+                    time_end
                 );
             }
         }
