@@ -1,5 +1,8 @@
 use ansi_term::Color::{self, Green, Red, White, Yellow, RGB};
-use std::io::{stdin, Write};
+use std::{
+    fmt::format,
+    io::{stdin, Write},
+};
 
 fn main() {
     // Init board
@@ -137,16 +140,16 @@ fn ai_print(board: [[Tile; 3]; 3], ai: [usize; 2], iterations: i32, time_end: st
     clear_screen();
     draw_board(&board);
     println!(
-        "{} {} {} {} {:?} {} {} {}",
+        "{} {} {} {} {} {} {} {}",
         Red.bold().paint(">>>"),
-        Red.paint("Computer picked:"),
-        index_to_string(ai),
-        Red.paint("in"),
-        time_end,
-        Red.paint("after checking"),
+        "Computer picked:",
+        Red.bold().paint(index_to_string(ai),),
+        "in",
+        Red.bold().paint(format!("{:?}", time_end)),
+        "after checking",
         // Divied by 2 because it checks both player and computer
-        White.bold().paint((iterations / 2).to_string()),
-        Red.paint("permutations.")
+        Red.bold().paint((iterations / 2).to_string()),
+        "permutations."
     );
 }
 
